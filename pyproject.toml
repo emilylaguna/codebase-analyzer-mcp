@@ -1,0 +1,21 @@
+[project]
+name = "codebase-analyzer"
+version = "0.1.0"
+description = "FastMCP server for codebase parsing and semantic search"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.10.6",
+    "pip>=25.1.1",
+    "sqlite-vec>=0.1.6",
+    "tree-sitter>=0.25.0",
+    "tree-sitter-swift>=0.0.1",
+    "spacy>=3.7.0",
+    "uvicorn>=0.24.0",
+    "tree-sitter-python>=0.23.6",
+    "tree-sitter-json>=0.24.8",
+    "tree-sitter-languages>=1.10.2",
+]
+
+[project.scripts]
+codebase-analyzer = "main:main"
