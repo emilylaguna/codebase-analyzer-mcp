@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 class CodeParser:
-    def __init__(self, grammars_dir: str = "grammars", queries_dir: str = "queries"):
+    def __init__(self, grammars_dir: str = "grammars", queries_dir: str = "queries_scm"):
         """
         Initialize the code parser with Tree-sitter grammars and queries.
         
         Args:
             grammars_dir: Directory containing Tree-sitter WASM grammars
-            queries_dir: Directory containing language-specific query files
+            queries_dir: Directory containing language-specific SCM query files
         """
         self.grammars_dir = Path(grammars_dir)
         self.queries_dir = Path(queries_dir)
@@ -184,7 +184,7 @@ class CodeParser:
     
     def _load_query(self, language: str) -> Optional[str]:
         """
-        Load query file for a specific language.
+        Load SCM query file for a specific language.
         
         Args:
             language: Language name
@@ -197,32 +197,18 @@ class CodeParser:
         
         try:
             # Try minimal query first for problematic languages
-            minimal_query_path = self.queries_dir / f"{language}_minimal.ts"
-            query_path = self.queries_dir / f"{language}.ts"
+            # minimal_query_path = self.queries_dir / f"{language}.scm"
+            query_path = self.queries_dir / f"{language}.scm"
             
-            if minimal_query_path.exists():
-                query_path = minimal_query_path
-                logger.info(f"Using minimal query for {language}")
-            elif not query_path.exists():
-                logger.warning(f"Query not found for language: {language}")
-                return None
+            # if minimal_query_path.exists():
+            #     query_path = minimal_query_path
+            #     logger.info(f"Using minimal query for {language}")
+            # elif not query_path.exists():
+            #     logger.warning(f"Query not found for language: {language}")
+            #     return None
             
             with open(query_path, 'r', encoding='utf-8') as f:
-                query_content = f.read()
-            
-            # Extract the query from the TypeScript file
-            # Find the content between export default ` and the closing backtick
-            query = query_content.strip()
-            
-            # Find the start of the query (after export default `)
-            start_marker = "export default `"
-            if start_marker in query:
-                start_idx = query.find(start_marker) + len(start_marker)
-                query = query[start_idx:]
-            
-            # Find the end of the query (before the closing backtick)
-            if query.endswith("`"):
-                query = query[:-1]  # Remove trailing backtick
+                query = f.read().strip()
             
             self.queries[language] = query
             logger.info(f"Loaded query for language: {language}")
@@ -477,6 +463,22 @@ class CodeParser:
                 symbols.append({
                     'name': protocol_name,
                     'symbol_type': 'protocol',
+                    'line_start': i + 1,
+                    'line_end': i + 1,
+                    'code_snippet': line.strip(),
+                    'file_path': file_path,
+                    'language': language
+                })
+        
+        # Find variable declarations (let and var)
+        var_pattern = r'^(let|var)\s+(\w+)'
+        for i, line in enumerate(lines):
+            match = re.match(var_pattern, line.strip())
+            if match:
+                var_name = match.group(2)
+                symbols.append({
+                    'name': var_name,
+                    'symbol_type': 'variable',
                     'line_start': i + 1,
                     'line_end': i + 1,
                     'code_snippet': line.strip(),
@@ -1016,6 +1018,10 @@ class CodeParser:
             'static_method': 'static_method',
             'convenience_initializer': 'convenience_initializer'
         }
+        
+        # Special handling for Swift: @name captures in property patterns should be variables
+        if capture_name == 'name':
+            return 'variable'
         
         return type_mapping.get(capture_name, 'unknown')
     
