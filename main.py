@@ -12,7 +12,7 @@ import os
 from fastmcp import FastMCP, Context
 from db import DatabaseManager
 from embeddings import EmbeddingManager
-from parser import CodeParser
+from parsers.code_parser import CodeParser
 
 # Configure logging
 logging.basicConfig(

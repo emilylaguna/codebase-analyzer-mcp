@@ -11,7 +11,7 @@ from pathlib import Path
 # Add the current directory to the path so we can import parser
 sys.path.insert(0, str(Path(__file__).parent))
 
-from parser import CodeParser
+from parsers.code_parser import CodeParser
 
 
 def test_swift_parsing():

@@ -496,7 +496,7 @@ results = await search_symbol_by_name("UserService", "typescript", "frontend")
    - Code-specific text preprocessing
    - Batch processing support
 
-3. **Code Parser** (`parser.py`)
+3. **Code Parser** (`parsers/code_parser.py`)
    - Tree-sitter WASM grammar loading
    - Language detection and symbol extraction
    - Query-based pattern matching
@@ -546,7 +546,7 @@ USING vec0(
 
 1. Add the Tree-sitter WASM grammar to `grammars/`
 2. Create a query file in `queries/` (see existing examples)
-3. Update the language mapping in `parser.py`
+3. Update the language mapping in `parsers/code_parser.py`
 
 #### Using Different Embedding Models
 
@@ -604,7 +604,7 @@ codebase-analyzer/
 ├── main.py              # FastMCP server entrypoint
 ├── db.py                # Database layer
 ├── embeddings.py        # SpaCy embedding manager
-├── parser.py            # Tree-sitter parser
+├── parsers/             # Modular language parsers
 ├── grammars/            # Tree-sitter WASM grammars
 ├── queries/             # Language-specific queries
 ├── pyproject.toml       # Dependencies and metadata

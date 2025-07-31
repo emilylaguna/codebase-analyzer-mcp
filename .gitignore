@@ -10,5 +10,5 @@ wheels/
 .venv
 
 .DS_Store
-grammars/tree-sitter-swift
+grammars/*
 codebase_analyzer.db
