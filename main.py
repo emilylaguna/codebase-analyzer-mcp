@@ -1015,7 +1015,8 @@ def main():
     asyncio.run(startup())
     
     # Run the server
-    app.run(transport="http", port=9001)
+    # app.run(transport="http", port=9001)
+    app.run(transport="stdio")
 
 
 if __name__ == "__main__":

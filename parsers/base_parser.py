@@ -437,11 +437,100 @@ class BaseParser:
                 if words:
                     return words[0]
             
+            # Handle bash-specific capture names
+            elif language == 'bash':
+                return self._extract_bash_symbol_name(node, capture_name, name)
+            
             return name if name else None
             
         except Exception as e:
             logger.error(f"Error extracting symbol name: {e}")
             return None
+    
+    def _extract_bash_symbol_name(self, node: tree_sitter.Node, capture_name: str, 
+                                name: str) -> Optional[str]:
+        """
+        Extract symbol name for bash-specific captures.
+        
+        Args:
+            node: Tree-sitter node
+            capture_name: Name of the capture
+            name: Node text
+            
+        Returns:
+            Symbol name or None
+        """
+        try:
+            # Handle different bash capture types
+            if capture_name == 'function.name':
+                # Function name is usually the first word after 'function' or the word before '('
+                if name.startswith('function '):
+                    return name.split()[1] if len(name.split()) > 1 else None
+                # For function_name() style, extract the name before parentheses
+                if '(' in name:
+                    return name.split('(')[0].strip()
+                return name
+            
+            elif capture_name == 'variable.name':
+                # Variable name is usually the text as-is
+                return name
+            
+            elif capture_name == 'variable.expansion':
+                # Variable expansion like $VAR_NAME - extract the variable name
+                if name.startswith('$'):
+                    return name[1:]  # Remove the $ prefix
+                return name
+            
+            elif capture_name == 'command.name':
+                # Command name is usually the first word
+                words = name.split()
+                return words[0] if words else None
+            
+            elif capture_name == 'string.content':
+                # String content - return as-is for now
+                return name
+            
+            elif capture_name in ['if.statement', 'for.statement', 'while.statement', 
+                                'case.statement', 'do.group']:
+                # Control structures - use the keyword as identifier
+                keywords = ['if', 'for', 'while', 'case', 'do']
+                for keyword in keywords:
+                    if name.startswith(keyword):
+                        return keyword
+                return name
+            
+            elif capture_name in ['test.command', 'pipeline', 'list', 'negated.command']:
+                # Complex commands - extract the main command name
+                words = name.split()
+                if words:
+                    # Skip negation operator
+                    if words[0] == '!':
+                        return words[1] if len(words) > 1 else None
+                    return words[0]
+                return name
+            
+            elif capture_name in ['binary.expression', 'unary.expression', 
+                                'ternary.expression', 'parenthesized.expression']:
+                # Expressions - try to extract a meaningful identifier
+                # For now, return the first word that looks like an identifier
+                import re
+                words = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', name)
+                return words[0] if words else name
+            
+            elif capture_name == 'comment':
+                # Comments - extract first word after #
+                if name.startswith('#'):
+                    content = name[1:].strip()
+                    words = content.split()
+                    return words[0] if words else 'comment'
+                return name
+            
+            # Default case
+            return name if name else None
+            
+        except Exception as e:
+            logger.error(f"Error extracting bash symbol name: {e}")
+            return name if name else None
     
     def _get_symbol_type(self, capture_name: str) -> str:
         """
@@ -494,7 +583,58 @@ class BaseParser:
             'property_name': 'property',
             'subscript_param_name': 'subscript',
             'type_alias_name': 'type_alias',
-            'attribute_name': 'attribute'
+            'attribute_name': 'attribute',
+            # Bash-specific capture names from our improved SCM file
+            'function.name': 'function',
+            'variable.name': 'variable',
+            'variable.expansion': 'variable',
+            'command.name': 'command',
+            'command.argument': 'argument',
+            'string.content': 'string',
+            'raw.string': 'string',
+            'translated.string': 'string',
+            'ansi.string': 'string',
+            'number': 'number',
+            'expansion': 'variable',
+            'arithmetic.expansion': 'expression',
+            'command.substitution': 'command',
+            'process.substitution': 'command',
+            'array': 'array',
+            'subscript': 'subscript',
+            'file.redirect': 'redirect',
+            'heredoc.redirect': 'redirect',
+            'herestring.redirect': 'redirect',
+            'redirected.statement': 'statement',
+            'binary.expression': 'expression',
+            'unary.expression': 'expression',
+            'ternary.expression': 'expression',
+            'postfix.expression': 'expression',
+            'parenthesized.expression': 'expression',
+            'compound.statement': 'statement',
+            'subshell': 'statement',
+            'brace.expression': 'expression',
+            'comment': 'comment',
+            'identifier': 'identifier',
+            'file.descriptor': 'descriptor',
+            'test.operator': 'operator',
+            'regex': 'regex',
+            'extglob.pattern': 'pattern',
+            'concatenation': 'expression',
+            'unset.command': 'command',
+            'declaration.command': 'command',
+            'if.statement': 'statement',
+            'elif.clause': 'statement',
+            'else.clause': 'statement',
+            'for.statement': 'statement',
+            'c.for.statement': 'statement',
+            'while.statement': 'statement',
+            'case.statement': 'statement',
+            'case.item': 'statement',
+            'do.group': 'statement',
+            'test.command': 'command',
+            'pipeline': 'command',
+            'list': 'command',
+            'negated.command': 'command'
         }
         
         # Special handling for Swift: @name captures in property patterns should be variables
