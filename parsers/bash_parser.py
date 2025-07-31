@@ -19,7 +19,7 @@ class BashParser(BaseParser):
             '.ksh': 'bash',  # Korn shell is similar enough to use bash grammar
         }
 
-    def _get_symbol_type(self, capture_name: str, language: str) -> str:
+    def _get_symbol_type(self, capture_name: str, language: str) -> Optional[str]:
         """Map capture names to symbol types for bash."""
         type_mapping = {
             'function.name': 'function',
@@ -79,7 +79,7 @@ class BashParser(BaseParser):
             'list': 'command',
             'negated.command': 'command'
         }
-        return type_mapping.get(capture_name, 'unknown')
+        return type_mapping.get(capture_name, None)
 
     def parse_file(self, file_path: str) -> List[Dict]:
         """Parse a bash file using tree-sitter with fallback to regex."""

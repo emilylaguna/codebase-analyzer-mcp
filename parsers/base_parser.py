@@ -258,6 +258,10 @@ class BaseParser:
             # Get symbol type
             symbol_type = self._get_symbol_type(capture_name, language)
             
+            # Skip unknown symbol types
+            if symbol_type is None:
+                return None
+            
             # Get line numbers
             line_start = node.start_point[0] + 1
             line_end = node.end_point[0] + 1
@@ -342,7 +346,7 @@ class BaseParser:
             logger.error(f"Error extracting symbol name: {e}")
             return None
     
-    def _get_symbol_type(self, capture_name: str, language: str) -> str:
+    def _get_symbol_type(self, capture_name: str, language: str) -> Optional[str]:
         """
         Map capture name to symbol type.
         
@@ -351,7 +355,7 @@ class BaseParser:
             language: Programming language
             
         Returns:
-            Symbol type
+            Symbol type or None if unknown
         """
 
         
@@ -388,7 +392,7 @@ class BaseParser:
             'name': 'variable',  # Default for name captures
         }
         
-        return type_mapping.get(capture_name, 'unknown')
+        return type_mapping.get(capture_name, None)
     
     def _extract_relationships(self, tree: tree_sitter.Tree, content: str, 
                              language: str, file_path: str, symbols: List[Dict]) -> Dict[str, List[Dict]]:

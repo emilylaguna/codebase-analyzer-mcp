@@ -1,0 +1,116 @@
+{
+  "name": "test-project",
+  "version": "1.0.0",
+  "description": "A comprehensive test JSON file for parser testing",
+  "author": "Test Author",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jest",
+    "build": "webpack",
+    "dev": "nodemon"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "react": "^17.0.2",
+    "typescript": "^4.5.4"
+  },
+  "devDependencies": {
+    "jest": "^27.4.7",
+    "webpack": "^5.65.0",
+    "nodemon": "^2.0.15"
+  },
+  "keywords": [
+    "test",
+    "json",
+    "parser",
+    "tree-sitter"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/test/test-project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/test/test-project/issues"
+  },
+  "homepage": "https://github.com/test/test-project#readme",
+  "config": {
+    "port": 3000,
+    "host": "localhost",
+    "debug": true,
+    "timeout": 5000
+  },
+  "metadata": {
+    "created": "2023-01-01T00:00:00Z",
+    "updated": "2023-12-01T00:00:00Z",
+    "tags": ["test", "json", "parser"]
+  },
+  "nested_objects": {
+    "level1": {
+      "level2": {
+        "level3": {
+          "value": "deeply nested"
+        }
+      }
+    }
+  },
+  "arrays": [
+    "string1",
+    "string2",
+    "string3"
+  ],
+  "mixed_array": [
+    "string",
+    123,
+    true,
+    null,
+    {
+      "nested": "object"
+    },
+    [
+      "nested",
+      "array"
+    ]
+  ],
+  "numbers": {
+    "integer": 42,
+    "float": 3.14159,
+    "negative": -10,
+    "scientific": 1.23e-4,
+    "large": 1234567890
+  },
+  "booleans": {
+    "true_value": true,
+    "false_value": false
+  },
+  "null_values": {
+    "null_field": null
+  },
+  "empty_structures": {
+    "empty_object": {},
+    "empty_array": []
+  },
+  "escape_sequences": {
+    "quotes": "He said \"Hello World\"",
+    "backslash": "C:\\Users\\Test",
+    "newline": "Line 1\nLine 2",
+    "tab": "Column1\tColumn2",
+    "unicode": "Unicode: \u0041\u0042\u0043"
+  },
+  "schema_example": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The name of the item"
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "required": ["name"]
+  }
+} 

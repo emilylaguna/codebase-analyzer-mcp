@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 from .base_parser import BaseParser
 
 
@@ -117,7 +117,7 @@ class ComprehensiveParser(BaseParser):
             '.resi': 'rescript',
         }
     
-    def _get_symbol_type(self, capture_name: str, language: str) -> str:
+    def _get_symbol_type(self, capture_name: str, language: str) -> Optional[str]:
         """
         Map capture name to symbol type with language-specific handling.
         
@@ -161,4 +161,4 @@ class ComprehensiveParser(BaseParser):
             'name': 'variable',  # Default for name captures
         }
         
-        return type_mapping.get(capture_name, 'unknown') 
+        return type_mapping.get(capture_name, None) 

@@ -1,0 +1,10 @@
+{
+  "name": "simple-test",
+  "version": "1.0.0",
+  "description": "A simple test JSON file",
+  "numbers": [1, 2, 3, 4, 5],
+  "config": {
+    "debug": true,
+    "port": 8080
+  }
+} 

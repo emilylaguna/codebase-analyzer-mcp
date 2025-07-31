@@ -14,7 +14,7 @@ class PythonParser(BaseParser):
             '.pyi': 'python',
         }
     
-    def _get_symbol_type(self, capture_name: str, language: str) -> str:
+    def _get_symbol_type(self, capture_name: str, language: str) -> Optional[str]:
         """Map capture name to symbol type for Python."""
         # Handle Tree-sitter query capture names
         if capture_name.startswith('definition.'):
@@ -39,7 +39,7 @@ class PythonParser(BaseParser):
             'name': 'variable',  # Default for name captures
         }
         
-        return type_mapping.get(capture_name, 'unknown')
+        return type_mapping.get(capture_name, None)
     
     def extract_symbols_regex(self, lines: List[str], file_path: str, 
                             language: str) -> List[Dict]:
