@@ -1,0 +1,530 @@
+{
+  "name": "codebase-analyzer",
+  "instructions": null,
+  "fastmcp_version": "2.10.6",
+  "mcp_version": "1.12.2",
+  "server_version": "2.10.6",
+  "tools": [
+    {
+      "key": "index_codebase",
+      "name": "index_codebase",
+      "description": "Parse and index a codebase directory with smart incremental scanning for git repositories.\n\nArgs:\n    path: Path to the codebase directory\n    project_id: Unique identifier for this project (default: \"default\")\n    ctx: FastMCP context for progress reporting\n    \nReturns:\n    Dictionary with indexing statistics",
+      "input_schema": {
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "project_id": {
+            "default": "default",
+            "title": "Project Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "search_symbol_by_name",
+      "name": "search_symbol_by_name",
+      "description": "Search for symbols by exact name match.\n\nArgs:\n    name: Symbol name to search for\n    language: Optional language filter\n    project_id: Optional project filter (if not specified, searches across all projects)\n    \nReturns:\n    Dictionary with search results",
+      "input_schema": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Language"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "search_symbol_semantic",
+      "name": "search_symbol_semantic",
+      "description": "Search for symbols using semantic similarity.\n\nArgs:\n    query: Natural language query\n    top_k: Number of top results to return\n    project_id: Optional project filter (if not specified, searches across all projects)\n    \nReturns:\n    Dictionary with search results",
+      "input_schema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "top_k": {
+            "default": 10,
+            "title": "Top K",
+            "type": "integer"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "list_projects",
+      "name": "list_projects",
+      "description": "List all projects in the database with their statistics and git information.\n\nReturns:\n    Dictionary with project information",
+      "input_schema": {
+        "properties": {},
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "force_full_rescan",
+      "name": "force_full_rescan",
+      "description": "Force a full rescan of a project by clearing the last commit hash.\n\nArgs:\n    project_id: Project identifier to rescan\n    ctx: FastMCP context for progress reporting\n    \nReturns:\n    Dictionary with rescan status",
+      "input_schema": {
+        "properties": {
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "delete_project",
+      "name": "delete_project",
+      "description": "Delete all symbols and embeddings for a specific project.\n\nArgs:\n    project_id: Project identifier to delete\n    ctx: FastMCP context for progress reporting\n    \nReturns:\n    Dictionary with deletion status",
+      "input_schema": {
+        "properties": {
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "get_project_info",
+      "name": "get_project_info",
+      "description": "Get detailed information about a specific project including git status.\n\nArgs:\n    project_id: Project identifier\n    \nReturns:\n    Dictionary with project information",
+      "input_schema": {
+        "properties": {
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "get_stats",
+      "name": "get_stats",
+      "description": "Get database statistics.\n\nArgs:\n    project_id: Optional project filter (if not specified, returns global stats)\n    \nReturns:\n    Dictionary with database statistics",
+      "input_schema": {
+        "properties": {
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "health_check",
+      "name": "health_check",
+      "description": "Check server health and component status.\n\nReturns:\n    Dictionary with health status",
+      "input_schema": {
+        "properties": {},
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "find_function_callers",
+      "name": "find_function_callers",
+      "description": "Find all callers of a specific function or method.",
+      "input_schema": {
+        "properties": {
+          "function_name": {
+            "title": "Function Name",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          }
+        },
+        "required": [
+          "function_name"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "find_interface_implementations",
+      "name": "find_interface_implementations",
+      "description": "Find all implementations of an interface, protocol, or abstract class.",
+      "input_schema": {
+        "properties": {
+          "interface_name": {
+            "title": "Interface Name",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          }
+        },
+        "required": [
+          "interface_name"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "get_symbol_relationships",
+      "name": "get_symbol_relationships",
+      "description": "Get all relationships for a specific symbol.",
+      "input_schema": {
+        "properties": {
+          "symbol_name": {
+            "title": "Symbol Name",
+            "type": "string"
+          },
+          "relationship_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Relationship Type"
+          },
+          "direction": {
+            "default": "both",
+            "title": "Direction",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          }
+        },
+        "required": [
+          "symbol_name"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "get_dependency_graph",
+      "name": "get_dependency_graph",
+      "description": "Get a dependency graph for the project showing relationships between symbols.",
+      "input_schema": {
+        "properties": {
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          },
+          "max_depth": {
+            "default": 3,
+            "title": "Max Depth",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "analyze_call_hierarchy",
+      "name": "analyze_call_hierarchy",
+      "description": "Analyze the call hierarchy for a specific function.",
+      "input_schema": {
+        "properties": {
+          "function_name": {
+            "title": "Function Name",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          },
+          "max_depth": {
+            "default": 3,
+            "title": "Max Depth",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "function_name"
+        ],
+        "type": "object"
+      },
+      "annotations": null,
+      "tags": null,
+      "enabled": true
+    }
+  ],
+  "prompts": [],
+  "resources": [
+    {
+      "key": "codebase://projects",
+      "uri": "codebase://projects",
+      "name": "get_projects",
+      "description": "Get all projects.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    }
+  ],
+  "templates": [
+    {
+      "key": "codebase://stats/{project_id}",
+      "uri_template": "codebase://stats/{project_id}",
+      "name": "get_project_stats_resource",
+      "description": "Get database statistics for a specific project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://symbols/{project_id}",
+      "uri_template": "codebase://symbols/{project_id}",
+      "name": "get_project_symbols",
+      "description": "Get all symbols for a specific project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://symbols/{project_id}/{language}",
+      "uri_template": "codebase://symbols/{project_id}/{language}",
+      "name": "get_project_language_symbols",
+      "description": "Get all symbols for a specific project and language.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://search/{project_id}/{query}",
+      "uri_template": "codebase://search/{project_id}/{query}",
+      "name": "search_symbols_in_project",
+      "description": "Search for symbols by name within a specific project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://files/{project_id}",
+      "uri_template": "codebase://files/{project_id}",
+      "name": "get_project_files",
+      "description": "Get all files indexed for a specific project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://languages/{project_id}",
+      "uri_template": "codebase://languages/{project_id}",
+      "name": "get_project_languages",
+      "description": "Get all languages used in a specific project with symbol counts.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://callers/{project_id}/{function_name}",
+      "uri_template": "codebase://callers/{project_id}/{function_name}",
+      "name": "get_function_callers",
+      "description": "Get all callers of a specific function in a project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://implementations/{project_id}/{interface_name}",
+      "uri_template": "codebase://implementations/{project_id}/{interface_name}",
+      "name": "get_interface_implementations",
+      "description": "Get all implementations of an interface/protocol in a project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://relationships/{project_id}/{symbol_name}",
+      "uri_template": "codebase://relationships/{project_id}/{symbol_name}",
+      "name": "get_symbol_relationships_resource",
+      "description": "Get all relationships for a specific symbol in a project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://dependencies/{project_id}",
+      "uri_template": "codebase://dependencies/{project_id}",
+      "name": "get_project_dependencies",
+      "description": "Get dependency graph for a project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    },
+    {
+      "key": "codebase://hierarchy/{project_id}/{function_name}",
+      "uri_template": "codebase://hierarchy/{project_id}/{function_name}",
+      "name": "get_call_hierarchy",
+      "description": "Get call hierarchy for a specific function in a project.",
+      "mime_type": "text/plain",
+      "tags": null,
+      "enabled": true
+    }
+  ],
+  "capabilities": {
+    "tools": {
+      "listChanged": true
+    },
+    "resources": {
+      "subscribe": false,
+      "listChanged": false
+    },
+    "prompts": {
+      "listChanged": false
+    },
+    "logging": {}
+  }
+}
