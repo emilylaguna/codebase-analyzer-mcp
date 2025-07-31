@@ -1,6 +1,10 @@
 from .base_parser import BaseParser
+from .comprehensive_parser import ComprehensiveParser
+from .language_parser_factory import LanguageParserFactory
+from .code_parser import CodeParser
 from .swift_parser import SwiftParser
 from .python_parser import PythonParser
+from .bash_parser import BashParser
 from .javascript_parser import JavaScriptParser
 from .java_parser import JavaParser
 from .cpp_parser import CppParser
@@ -25,8 +29,12 @@ from .tlaplus_parser import TlaplusParser
 
 __all__ = [
     'BaseParser',
+    'ComprehensiveParser',
+    'LanguageParserFactory',
+    'CodeParser',
     'SwiftParser',
     'PythonParser',
+    'BashParser',
     'JavaScriptParser',
     'JavaParser',
     'CppParser',

@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-from .base_parser import BaseParser
+from .comprehensive_parser import ComprehensiveParser
 from .swift_parser import SwiftParser
 from .python_parser import PythonParser
 from .javascript_parser import JavaScriptParser
@@ -23,9 +23,10 @@ from .ocaml_parser import OcamlParser
 from .elisp_parser import ElispParser
 from .systemrdl_parser import SystemRdlParser
 from .tlaplus_parser import TlaplusParser
+from .bash_parser import BashParser
 
 
-class CodeParser(BaseParser):
+class CodeParser(ComprehensiveParser):
     """Main code parser that uses language-specific parsers."""
     
     def __init__(self, grammars_dir: str = "grammars", queries_dir: str = "queries_scm"):
@@ -34,7 +35,7 @@ class CodeParser(BaseParser):
     
     def _init_language_parsers(self):
         """Initialize language-specific parsers."""
-        self.language_parsers: Dict[str, BaseParser] = {
+        self.language_parsers: Dict[str, ComprehensiveParser] = {
             'swift': SwiftParser(self.grammars_dir, self.queries_dir),
             'python': PythonParser(self.grammars_dir, self.queries_dir),
             'javascript': JavaScriptParser(self.grammars_dir, self.queries_dir),
@@ -63,8 +64,19 @@ class CodeParser(BaseParser):
             'systemrdl': SystemRdlParser(self.grammars_dir,
                                        self.queries_dir),
             'tlaplus': TlaplusParser(self.grammars_dir, self.queries_dir),
+            'bash': BashParser(self.grammars_dir, self.queries_dir),
         }
     
-    def _get_language_parser(self, language: str) -> Optional[BaseParser]:
+    def _get_language_parser(self, language: str) -> Optional[ComprehensiveParser]:
         """Get language-specific parser instance."""
-        return self.language_parsers.get(language) 
+        # First try to get from our initialized parsers
+        parser = self.language_parsers.get(language)
+        if parser:
+            return parser
+        
+        # Fallback to factory if not found
+        try:
+            from .language_parser_factory import LanguageParserFactory
+            return LanguageParserFactory.get_parser(language)
+        except ImportError:
+            return None 

@@ -6,6 +6,41 @@ from .base_parser import BaseParser
 class PythonParser(BaseParser):
     """Python-specific parser for extracting symbols and relationships."""
     
+    def _build_language_map(self) -> Dict[str, str]:
+        """Build mapping from file extensions to language names for Python."""
+        return {
+            '.py': 'python',
+            '.pyx': 'python',
+            '.pyi': 'python',
+        }
+    
+    def _get_symbol_type(self, capture_name: str) -> str:
+        """Map capture name to symbol type for Python."""
+        # Handle Tree-sitter query capture names
+        if capture_name.startswith('definition.'):
+            return capture_name.split('.')[1]
+        
+        # Handle direct capture names
+        type_mapping = {
+            'function': 'function',
+            'method': 'method',
+            'class': 'class',
+            'interface': 'interface',
+            'variable': 'variable',
+            'constant': 'constant',
+            'enum': 'enum',
+            'struct': 'struct',
+            'trait': 'trait',
+            'protocol': 'protocol',
+            'module': 'module',
+            'namespace': 'namespace',
+            'property': 'property',
+            'identifier': 'identifier',
+            'name': 'variable',  # Default for name captures
+        }
+        
+        return type_mapping.get(capture_name, 'unknown')
+    
     def extract_symbols_regex(self, lines: List[str], file_path: str, 
                             language: str) -> List[Dict]:
         """Extract Python symbols using regex patterns."""
@@ -55,8 +90,9 @@ class PythonParser(BaseParser):
             func_calls = re.findall(r'(\w+)\s*\(', line)
             for func_call in func_calls:
                 # Skip common Python keywords and built-ins
-                if func_call not in ['if', 'for', 'while', 'with', 'def', 'class', 
-                                   'import', 'from', 'return', 'print']:
+                skip_keywords = ['if', 'for', 'while', 'with', 'def', 'class',
+                                'import', 'from', 'return', 'print']
+                if func_call not in skip_keywords:
                     # Find which function/class this call is in
                     for symbol in symbols:
                         if symbol['line_start'] <= i + 1 <= symbol['line_end']:

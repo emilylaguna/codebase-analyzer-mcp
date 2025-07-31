@@ -25,113 +25,8 @@ class BaseParser:
         
     def _build_language_map(self) -> Dict[str, str]:
         """Build mapping from file extensions to language names."""
-        return {
-            # Python
-            '.py': 'python',
-            '.pyx': 'python',
-            '.pyi': 'python',
-            
-            # JavaScript/TypeScript
-            '.js': 'javascript',
-            '.jsx': 'javascript',
-            '.ts': 'typescript',
-            '.tsx': 'tsx',
-            
-            # Java
-            '.java': 'java',
-            
-            # C/C++
-            '.c': 'c',
-            '.h': 'c',
-            '.cpp': 'cpp',
-            '.cc': 'cpp',
-            '.cxx': 'cpp',
-            '.hpp': 'cpp',
-            
-            # C#
-            '.cs': 'c_sharp',
-            
-            # Go
-            '.go': 'go',
-            
-            # Rust
-            '.rs': 'rust',
-            
-            # Ruby
-            '.rb': 'ruby',
-            '.erb': 'ruby',
-            
-            # PHP
-            '.php': 'php',
-            
-            # Swift
-            '.swift': 'swift',
-            
-            # Kotlin
-            '.kt': 'kotlin',
-            '.kts': 'kotlin',
-            
-            # Scala
-            '.scala': 'scala',
-            
-            # Lua
-            '.lua': 'lua',
-            
-            # HTML/CSS
-            '.html': 'html',
-            '.htm': 'html',
-            '.css': 'css',
-            
-            # JSON
-            '.json': 'json',
-            
-            # YAML
-            '.yml': 'yaml',
-            '.yaml': 'yaml',
-            
-            # TOML
-            '.toml': 'toml',
-            
-            # Vue
-            '.vue': 'vue',
-            
-            # Solidity
-            '.sol': 'solidity',
-            
-            # Zig
-            '.zig': 'zig',
-            
-            # Elixir
-            '.ex': 'elixir',
-            '.exs': 'elixir',
-            
-            # OCaml
-            '.ml': 'ocaml',
-            '.mli': 'ocaml',
-            
-            # Elm
-            '.elm': 'elm',
-            
-            # Bash
-            '.sh': 'bash',
-            '.bash': 'bash',
-            
-            # Elisp
-            '.el': 'elisp',
-            
-            # SystemRDL
-            '.rdl': 'systemrdl',
-            
-            # TLA+
-            '.tla': 'tlaplus',
-            
-            # QL
-            '.ql': 'ql',
-            
-            # ReScript
-            '.re': 'rescript',
-            '.resi': 'rescript',
-        }
+        # This should be overridden by language-specific parsers
+        return {}
     
     def detect_language(self, file_path: str) -> Optional[str]:
         """
@@ -361,7 +256,7 @@ class BaseParser:
                 return None
             
             # Get symbol type
-            symbol_type = self._get_symbol_type(capture_name)
+            symbol_type = self._get_symbol_type(capture_name, language)
             
             # Get line numbers
             line_start = node.start_point[0] + 1
@@ -405,6 +300,15 @@ class BaseParser:
             # Clean up the name
             name = name.strip()
             
+            # Get language-specific parser for better name extraction
+            parser = self._get_language_parser(language)
+            if parser:
+                # Try language-specific symbol name extraction first
+                if hasattr(parser, '_extract_bash_symbol_name') and language == 'bash':
+                    return parser._extract_bash_symbol_name(node, capture_name, name)
+                elif hasattr(parser, 'extract_symbol_name_from_definition'):
+                    return parser.extract_symbol_name_from_definition(name, capture_name)
+            
             # For Tree-sitter queries, we need to extract just the symbol name
             # The node might contain the entire definition, so we need to parse it
             
@@ -414,11 +318,6 @@ class BaseParser:
                 return name if name else None
             elif capture_name.startswith('definition.'):
                 # This is a definition capture, we need to extract the name from the definition
-                # Get language-specific parser for better name extraction
-                parser = self._get_language_parser(language)
-                if parser:
-                    return parser.extract_symbol_name_from_definition(name, capture_name)
-                
                 # Fallback for other languages
                 import re
                 
@@ -437,111 +336,29 @@ class BaseParser:
                 if words:
                     return words[0]
             
-            # Handle bash-specific capture names
-            elif language == 'bash':
-                return self._extract_bash_symbol_name(node, capture_name, name)
-            
             return name if name else None
             
         except Exception as e:
             logger.error(f"Error extracting symbol name: {e}")
             return None
     
-    def _extract_bash_symbol_name(self, node: tree_sitter.Node, capture_name: str, 
-                                name: str) -> Optional[str]:
-        """
-        Extract symbol name for bash-specific captures.
-        
-        Args:
-            node: Tree-sitter node
-            capture_name: Name of the capture
-            name: Node text
-            
-        Returns:
-            Symbol name or None
-        """
-        try:
-            # Handle different bash capture types
-            if capture_name == 'function.name':
-                # Function name is usually the first word after 'function' or the word before '('
-                if name.startswith('function '):
-                    return name.split()[1] if len(name.split()) > 1 else None
-                # For function_name() style, extract the name before parentheses
-                if '(' in name:
-                    return name.split('(')[0].strip()
-                return name
-            
-            elif capture_name == 'variable.name':
-                # Variable name is usually the text as-is
-                return name
-            
-            elif capture_name == 'variable.expansion':
-                # Variable expansion like $VAR_NAME - extract the variable name
-                if name.startswith('$'):
-                    return name[1:]  # Remove the $ prefix
-                return name
-            
-            elif capture_name == 'command.name':
-                # Command name is usually the first word
-                words = name.split()
-                return words[0] if words else None
-            
-            elif capture_name == 'string.content':
-                # String content - return as-is for now
-                return name
-            
-            elif capture_name in ['if.statement', 'for.statement', 'while.statement', 
-                                'case.statement', 'do.group']:
-                # Control structures - use the keyword as identifier
-                keywords = ['if', 'for', 'while', 'case', 'do']
-                for keyword in keywords:
-                    if name.startswith(keyword):
-                        return keyword
-                return name
-            
-            elif capture_name in ['test.command', 'pipeline', 'list', 'negated.command']:
-                # Complex commands - extract the main command name
-                words = name.split()
-                if words:
-                    # Skip negation operator
-                    if words[0] == '!':
-                        return words[1] if len(words) > 1 else None
-                    return words[0]
-                return name
-            
-            elif capture_name in ['binary.expression', 'unary.expression', 
-                                'ternary.expression', 'parenthesized.expression']:
-                # Expressions - try to extract a meaningful identifier
-                # For now, return the first word that looks like an identifier
-                import re
-                words = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', name)
-                return words[0] if words else name
-            
-            elif capture_name == 'comment':
-                # Comments - extract first word after #
-                if name.startswith('#'):
-                    content = name[1:].strip()
-                    words = content.split()
-                    return words[0] if words else 'comment'
-                return name
-            
-            # Default case
-            return name if name else None
-            
-        except Exception as e:
-            logger.error(f"Error extracting bash symbol name: {e}")
-            return name if name else None
-    
-    def _get_symbol_type(self, capture_name: str) -> str:
+    def _get_symbol_type(self, capture_name: str, language: str) -> str:
         """
         Map capture name to symbol type.
         
         Args:
             capture_name: Name of the capture
+            language: Programming language
             
         Returns:
             Symbol type
         """
+        # Get language-specific parser for type mapping
+        parser = self._get_language_parser(language)
+        if parser and hasattr(parser, '_get_symbol_type'):
+            return parser._get_symbol_type(capture_name)
+        
+        # Fallback to generic mapping
         # Handle Tree-sitter query capture names (e.g., "definition.class", "definition.function")
         if capture_name.startswith('definition.'):
             return capture_name.split('.')[1]
@@ -570,76 +387,9 @@ class BaseParser:
             'protocol_method': 'protocol_method',
             'static_method': 'static_method',
             'convenience_initializer': 'convenience_initializer',
-            # Swift-specific capture names from our SCM file
-            'class_name': 'class',
-            'struct_name': 'struct',
-            'enum_name': 'enum',
-            'actor_name': 'actor',
-            'extension_type_name': 'extension',
-            'protocol_name': 'protocol',
-            'function_name': 'function',
-            'initializer_name': 'initializer',
-            'deinitializer_name': 'deinitializer',
-            'property_name': 'property',
-            'subscript_param_name': 'subscript',
-            'type_alias_name': 'type_alias',
-            'attribute_name': 'attribute',
-            # Bash-specific capture names from our improved SCM file
-            'function.name': 'function',
-            'variable.name': 'variable',
-            'variable.expansion': 'variable',
-            'command.name': 'command',
-            'command.argument': 'argument',
-            'string.content': 'string',
-            'raw.string': 'string',
-            'translated.string': 'string',
-            'ansi.string': 'string',
-            'number': 'number',
-            'expansion': 'variable',
-            'arithmetic.expansion': 'expression',
-            'command.substitution': 'command',
-            'process.substitution': 'command',
-            'array': 'array',
-            'subscript': 'subscript',
-            'file.redirect': 'redirect',
-            'heredoc.redirect': 'redirect',
-            'herestring.redirect': 'redirect',
-            'redirected.statement': 'statement',
-            'binary.expression': 'expression',
-            'unary.expression': 'expression',
-            'ternary.expression': 'expression',
-            'postfix.expression': 'expression',
-            'parenthesized.expression': 'expression',
-            'compound.statement': 'statement',
-            'subshell': 'statement',
-            'brace.expression': 'expression',
-            'comment': 'comment',
             'identifier': 'identifier',
-            'file.descriptor': 'descriptor',
-            'test.operator': 'operator',
-            'regex': 'regex',
-            'extglob.pattern': 'pattern',
-            'concatenation': 'expression',
-            'unset.command': 'command',
-            'declaration.command': 'command',
-            'if.statement': 'statement',
-            'elif.clause': 'statement',
-            'else.clause': 'statement',
-            'for.statement': 'statement',
-            'c.for.statement': 'statement',
-            'while.statement': 'statement',
-            'case.statement': 'statement',
-            'case.item': 'statement',
-            'do.group': 'statement',
-            'test.command': 'command',
-            'pipeline': 'command',
-            'list': 'command',
-            'negated.command': 'command'
+            'name': 'variable',  # Default for name captures
         }
-        
-        # Special handling for Swift: @name captures in property patterns should be variables
-        if capture_name == 'name':
-            return 'variable'
         
         return type_mapping.get(capture_name, 'unknown')
     
@@ -750,5 +500,9 @@ class BaseParser:
     
     def _get_language_parser(self, language: str):
         """Get language-specific parser instance."""
-        # This will be implemented by subclasses to return the appropriate parser
-        return None 
+        try:
+            from .language_parser_factory import LanguageParserFactory
+            return LanguageParserFactory.get_parser(language)
+        except ImportError:
+            # Fallback if factory is not available
+            return None 

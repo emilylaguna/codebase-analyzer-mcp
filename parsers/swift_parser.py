@@ -6,6 +6,62 @@ from .base_parser import BaseParser
 class SwiftParser(BaseParser):
     """Swift-specific parser for extracting symbols and relationships."""
     
+    def _build_language_map(self) -> Dict[str, str]:
+        """Build mapping from file extensions to language names for Swift."""
+        return {
+            '.swift': 'swift',
+        }
+    
+    def _get_symbol_type(self, capture_name: str) -> str:
+        """Map capture name to symbol type for Swift."""
+        # Handle Tree-sitter query capture names
+        if capture_name.startswith('definition.'):
+            return capture_name.split('.')[1]
+        
+        # Handle direct capture names
+        type_mapping = {
+            'function': 'function',
+            'method': 'method',
+            'class': 'class',
+            'interface': 'interface',
+            'variable': 'variable',
+            'constant': 'constant',
+            'enum': 'enum',
+            'struct': 'struct',
+            'trait': 'trait',
+            'protocol': 'protocol',
+            'module': 'module',
+            'namespace': 'namespace',
+            'property': 'property',
+            'initializer': 'initializer',
+            'deinitializer': 'deinitializer',
+            'subscript': 'subscript',
+            'computed_property': 'computed_property',
+            'type_alias': 'type_alias',
+            'protocol_property': 'protocol_property',
+            'protocol_method': 'protocol_method',
+            'static_method': 'static_method',
+            'convenience_initializer': 'convenience_initializer',
+            # Swift-specific capture names from our SCM file
+            'class_name': 'class',
+            'struct_name': 'struct',
+            'enum_name': 'enum',
+            'actor_name': 'actor',
+            'extension_type_name': 'extension',
+            'protocol_name': 'protocol',
+            'function_name': 'function',
+            'initializer_name': 'initializer',
+            'deinitializer_name': 'deinitializer',
+            'property_name': 'property',
+            'subscript_param_name': 'subscript',
+            'type_alias_name': 'type_alias',
+            'attribute_name': 'attribute',
+            'identifier': 'identifier',
+            'name': 'variable',  # Special handling for Swift: @name captures
+        }
+        
+        return type_mapping.get(capture_name, 'unknown')
+    
     def extract_symbols_regex(self, lines: List[str], file_path: str, 
                             language: str) -> List[Dict]:
         """Extract Swift symbols using regex patterns."""
@@ -103,9 +159,10 @@ class SwiftParser(BaseParser):
             func_calls = re.findall(r'(\w+)\s*\(', line)
             for func_call in func_calls:
                 # Skip common Swift keywords
-                if func_call not in ['if', 'for', 'while', 'switch', 'guard', 
-                                   'func', 'class', 'struct', 'enum', 'protocol', 
-                                   'import', 'return', 'print']:
+                skip_keywords = ['if', 'for', 'while', 'switch', 'guard',
+                               'func', 'class', 'struct', 'enum', 'protocol',
+                               'import', 'return', 'print']
+                if func_call not in skip_keywords:
                     # Find which function/class this call is in
                     for symbol in symbols:
                         if symbol['line_start'] <= i + 1 <= symbol['line_end']:
