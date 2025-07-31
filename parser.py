@@ -197,16 +197,8 @@ class CodeParser:
         
         try:
             # Try minimal query first for problematic languages
-            # minimal_query_path = self.queries_dir / f"{language}.scm"
             query_path = self.queries_dir / f"{language}.scm"
-            
-            # if minimal_query_path.exists():
-            #     query_path = minimal_query_path
-            #     logger.info(f"Using minimal query for {language}")
-            # elif not query_path.exists():
-            #     logger.warning(f"Query not found for language: {language}")
-            #     return None
-            
+            logger.info(f"Loading query for language: {language} from {query_path}")
             with open(query_path, 'r', encoding='utf-8') as f:
                 query = f.read().strip()
             
@@ -870,6 +862,19 @@ class CodeParser:
             # Get symbol type
             symbol_type = self._get_symbol_type(capture_name)
             
+            # Special handling for Swift type declarations
+            if language == 'swift' and symbol_type in ['class', 'struct', 'enum', 'actor', 'extension']:
+                # For Swift type declarations, we need to get the actual declaration kind
+                # Find the parent class_declaration node
+                current_node = node
+                while current_node and current_node.type != 'class_declaration':
+                    current_node = current_node.parent
+                
+                if current_node:
+                    declaration_kind = self._extract_swift_declaration_kind(current_node)
+                    if declaration_kind:
+                        symbol_type = declaration_kind
+            
             # Get line numbers
             line_start = node.start_point[0] + 1
             line_end = node.end_point[0] + 1
@@ -979,6 +984,43 @@ class CodeParser:
             logger.error(f"Error extracting symbol name: {e}")
             return None
     
+    def _extract_swift_declaration_kind(self, node: tree_sitter.Node) -> Optional[str]:
+        """
+        Extract the declaration_kind from a Swift class_declaration node.
+        
+        Args:
+            node: Tree-sitter node (should be a class_declaration)
+            
+        Returns:
+            Declaration kind ("class", "struct", "enum", "actor", "extension") or None
+        """
+        try:
+            # Look for the declaration_kind field in the node
+            for child in node.children:
+                if child.type == 'declaration_kind':
+                    return child.text.decode('utf-8')
+            
+            # If not found, try to infer from the node text
+            node_text = node.text.decode('utf-8') if node.text else ""
+            
+            # Check for keywords in the text
+            if 'class ' in node_text:
+                return 'class'
+            elif 'struct ' in node_text:
+                return 'struct'
+            elif 'enum ' in node_text:
+                return 'enum'
+            elif 'actor ' in node_text:
+                return 'actor'
+            elif 'extension ' in node_text:
+                return 'extension'
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error extracting Swift declaration kind: {e}")
+            return None
+    
     def _get_symbol_type(self, capture_name: str) -> str:
         """
         Map capture name to symbol type.
@@ -1016,7 +1058,21 @@ class CodeParser:
             'protocol_property': 'protocol_property',
             'protocol_method': 'protocol_method',
             'static_method': 'static_method',
-            'convenience_initializer': 'convenience_initializer'
+            'convenience_initializer': 'convenience_initializer',
+            # Swift-specific capture names from our SCM file
+            'class_name': 'class',
+            'struct_name': 'struct',
+            'enum_name': 'enum',
+            'actor_name': 'actor',
+            'extension_type_name': 'extension',
+            'protocol_name': 'protocol',
+            'function_name': 'function',
+            'initializer_name': 'initializer',
+            'deinitializer_name': 'deinitializer',
+            'property_name': 'property',
+            'subscript_param_name': 'subscript',
+            'type_alias_name': 'type_alias',
+            'attribute_name': 'attribute'
         }
         
         # Special handling for Swift: @name captures in property patterns should be variables

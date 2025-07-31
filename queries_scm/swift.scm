@@ -1,102 +1,97 @@
-; Structs, enums, classes, and protocols
-(class_declaration
-  declaration_kind: "struct"
-  name: (type_identifier) @name
-  (#set! role struct)
-) @subtree
-(class_declaration
-  declaration_kind: "enum"
-  name: (type_identifier) @name
-  (#set! role enum)
-) @subtree
+; =============================================================================
+; ROBUST SWIFT TREE-SITTER QUERY FILE
+; Based on actual tree-sitter-swift corpus examples
+; =============================================================================
+
+; =============================================================================
+; TOP-LEVEL TYPE DECLARATIONS
+; =============================================================================
+
+; All type declarations use class_declaration with declaration_kind
 (class_declaration
   declaration_kind: "class"
-  name: (type_identifier) @name
-  (#set! role class)
-) @subtree
+  name: (type_identifier) @class_name
+) @class_definition
+
+(class_declaration
+  declaration_kind: "struct"
+  name: (type_identifier) @struct_name
+) @struct_definition
+
+(class_declaration
+  declaration_kind: "enum"
+  name: (type_identifier) @enum_name
+) @enum_definition
+
 (class_declaration
   declaration_kind: "actor"
-  name: (type_identifier) @name
-  (#set! role class)
-) @subtree
+  name: (type_identifier) @actor_name
+) @actor_definition
+
 (class_declaration
   declaration_kind: "extension"
-  name: (user_type) @name
-  (#set! role category)
-) @subtree
+  name: (user_type) @extension_type_name
+) @extension_definition
+
+; =============================================================================
+; PROTOCOLS
+; =============================================================================
+
+; Protocol declarations
 (protocol_declaration
-  name: (type_identifier) @name
-  (#set! role interface)
-) @subtree
+  name: (type_identifier) @protocol_name
+) @protocol_definition
 
-; Initializers
+; =============================================================================
+; FUNCTIONS
+; =============================================================================
+
+; Global function declarations
 (function_declaration
-  name: "init" @name
- (#set! role constructor)
-) @subtree
+  name: (simple_identifier) @function_name
+) @function_definition
 
-; Deinitializers
+; =============================================================================
+; INITIALIZERS AND DEINITIALIZERS
+; =============================================================================
+
+; Initializer declarations
+(init_declaration
+  "init" @initializer_name
+) @initializer_definition
+
+; Deinitializer declarations
 (deinit_declaration
-  "deinit" @name
- (#set! role destructor)
-) @subtree
+  "deinit" @deinitializer_name
+) @deinitializer_definition
 
-; Functions and methods
-(function_declaration
-  ; A performance issue in Tree Sitter query creation is preventing use of the modifiers.
-  ; (modifiers
-  ;   [
-  ;     (property_modifier "static")
-  ;     (property_modifier "class")
-  ;   ]
-  ; )?
-  name: (simple_identifier) @name
- ; (#set-by-case-eq! @_static role
- ;   "static" static-method
- ;   "class" static-method
- ;   function-or-method
- ; )
-  (#set! role function-or-method)
-) @subtree
+; =============================================================================
+; PROPERTIES
+; =============================================================================
 
-; Properties
-(class_body
-  (property_declaration
-  ; A performance issue in Tree Sitter query creation is preventing use of the modifiers.
-    ; (modifiers
-    ;   (property_modifier
-    ;     ["static" "class"] @_static
-    ;   )
-    ; )?
-    name: (pattern bound_identifier: (simple_identifier) @name)
-   ; (#set-by-case-eq! @_static role
-   ;   "static" static-property
-   ;   "class" static-property
-   ;   property
-   ; )
-   (#set! role property)
-  ) @subtree
-)
-(enum_class_body
-  (property_declaration
-    ; A performance issue in Tree Sitter query creation is preventing use of the modifiers.
-    ; (modifiers
-    ;   [
-    ;     (property_modifier "static")
-    ;     (property_modifier "class")
-    ;   ] @_static
-    ; )?
-    name: (pattern bound_identifier: (simple_identifier) @name)
-   ; (#set-by-case-eq! @_static role
-   ;   "static" static-property
-   ;   "class" static-property
-   ;   property
-   ; )
-    (#set! role property)
-  ) @subtree
-)
+; Property declarations
+(property_declaration
+  (pattern
+    bound_identifier: (simple_identifier) @property_name
+  )
+) @property_definition
 
-; Macros
-((macro_declaration (simple_identifier) @name) @subtree
-  (#set! role type)
-)
+; =============================================================================
+; SUBSCRIPTS
+; =============================================================================
+
+; Subscript declarations
+(subscript_declaration
+  (parameter
+    (simple_identifier) @subscript_param_name
+  )
+) @subscript_definition
+
+; =============================================================================
+; TYPE ALIASES
+; =============================================================================
+
+; Type alias declarations
+(typealias_declaration
+  name: (type_identifier) @type_alias_name
+) @type_alias_definition 
