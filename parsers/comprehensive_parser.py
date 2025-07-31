@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict
 from .base_parser import BaseParser
 
 
@@ -128,11 +128,6 @@ class ComprehensiveParser(BaseParser):
         Returns:
             Symbol type
         """
-        # Get language-specific parser for type mapping
-        parser = self._get_language_parser(language)
-        if parser and hasattr(parser, '_get_symbol_type'):
-            return parser._get_symbol_type(capture_name)
-        
         # Fallback to generic mapping
         # Handle Tree-sitter query capture names (e.g., "definition.class", "definition.function")
         if capture_name.startswith('definition.'):

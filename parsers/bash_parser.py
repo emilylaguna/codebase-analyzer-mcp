@@ -19,7 +19,7 @@ class BashParser(BaseParser):
             '.ksh': 'bash',  # Korn shell is similar enough to use bash grammar
         }
 
-    def _get_symbol_type(self, capture_name: str) -> str:
+    def _get_symbol_type(self, capture_name: str, language: str) -> str:
         """Map capture names to symbol types for bash."""
         type_mapping = {
             'function.name': 'function',
@@ -337,7 +337,8 @@ class BashParser(BaseParser):
 
     def _parse_content(self, content: str, language: str):
         """Parse content for tree-sitter analysis."""
-        parser = self._get_language_parser(language)
+        # Use the parser directly from the base class instead of calling _get_language_parser
+        parser = self._load_parser(language)
         if parser:
             return parser.parse(bytes(content, 'utf8'))
         return None

@@ -12,7 +12,7 @@ class SwiftParser(BaseParser):
             '.swift': 'swift',
         }
     
-    def _get_symbol_type(self, capture_name: str) -> str:
+    def _get_symbol_type(self, capture_name: str, language: str) -> str:
         """Map capture name to symbol type for Swift."""
         # Handle Tree-sitter query capture names
         if capture_name.startswith('definition.'):

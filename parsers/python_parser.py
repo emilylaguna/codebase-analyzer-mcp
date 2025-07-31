@@ -14,7 +14,7 @@ class PythonParser(BaseParser):
             '.pyi': 'python',
         }
     
-    def _get_symbol_type(self, capture_name: str) -> str:
+    def _get_symbol_type(self, capture_name: str, language: str) -> str:
         """Map capture name to symbol type for Python."""
         # Handle Tree-sitter query capture names
         if capture_name.startswith('definition.'):
