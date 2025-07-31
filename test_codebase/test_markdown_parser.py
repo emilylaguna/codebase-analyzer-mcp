@@ -12,7 +12,7 @@ def run_tree_sitter_query(scm_path: str, markdown_file: str,
                          query_name: str = None):
     """Run tree-sitter query command and return results."""
     try:
-        cmd = ['uv', 'tree-sitter', 'query', scm_path, markdown_file]
+        cmd = ['tree-sitter', 'query', scm_path, markdown_file]
         if query_name:
             cmd.extend(['--captures', query_name])
         
@@ -254,7 +254,9 @@ def test_parser_integration():
     
     try:
         # Import the parser
-        sys.path.append('parsers')
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'parsers'))
         from markdown_parser import MarkdownParser
         
         # Create parser instance
