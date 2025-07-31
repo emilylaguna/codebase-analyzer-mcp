@@ -92,12 +92,30 @@ class DatabaseManager:
                 """)
                 print(f"Warning: sqlite-vec not available ({e}), using fallback storage")
             
+            # Create projects table for tracking git repositories
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS projects (
+                    id INTEGER PRIMARY KEY,
+                    project_id TEXT UNIQUE NOT NULL,
+                    name TEXT,
+                    path TEXT NOT NULL,
+                    is_git_repo BOOLEAN DEFAULT FALSE,
+                    last_commit_hash TEXT,
+                    last_branch TEXT,
+                    last_scan_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
             # Create indexes for better performance
             conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_project_id ON symbols(project_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_language ON symbols(language)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_file_path ON symbols(file_path)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_file_hash ON symbols(file_hash)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_projects_project_id ON projects(project_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_projects_path ON projects(path)")
             
             # Relationship indexes
             conn.execute("CREATE INDEX IF NOT EXISTS idx_relationships_project_id ON relationships(project_id)")
@@ -203,6 +221,71 @@ class DatabaseManager:
                 })
             
             return projects
+    
+    def get_project_info(self, project_id: str) -> Optional[Dict]:
+        """Get project information from the projects table."""
+        with self._get_connection() as conn:
+            cursor = conn.execute("""
+                SELECT * FROM projects WHERE project_id = ?
+            """, (project_id,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "id": row[0],
+                    "project_id": row[1],
+                    "name": row[2],
+                    "path": row[3],
+                    "is_git_repo": bool(row[4]),
+                    "last_commit_hash": row[5],
+                    "last_branch": row[6],
+                    "last_scan_time": row[7],
+                    "created_at": row[8],
+                    "updated_at": row[9]
+                }
+            return None
+    
+    def create_or_update_project(self, project_id: str, path: str, name: Optional[str] = None,
+                               is_git_repo: bool = False, last_commit_hash: Optional[str] = None,
+                               last_branch: Optional[str] = None) -> int:
+        """Create or update a project record."""
+        with self._get_connection() as conn:
+            cursor = conn.execute("""
+                INSERT OR REPLACE INTO projects 
+                (project_id, name, path, is_git_repo, last_commit_hash, last_branch, last_scan_time, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """, (project_id, name, path, is_git_repo, last_commit_hash, last_branch))
+            conn.commit()
+            return cursor.lastrowid if cursor.lastrowid else 0
+    
+    def update_project_scan_info(self, project_id: str, last_commit_hash: Optional[str] = None,
+                               last_branch: Optional[str] = None):
+        """Update the last scan information for a project."""
+        with self._get_connection() as conn:
+            if last_commit_hash and last_branch:
+                conn.execute("""
+                    UPDATE projects 
+                    SET last_commit_hash = ?, last_branch = ?, last_scan_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                    WHERE project_id = ?
+                """, (last_commit_hash, last_branch, project_id))
+            elif last_commit_hash:
+                conn.execute("""
+                    UPDATE projects 
+                    SET last_commit_hash = ?, last_scan_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                    WHERE project_id = ?
+                """, (last_commit_hash, project_id))
+            elif last_branch:
+                conn.execute("""
+                    UPDATE projects 
+                    SET last_branch = ?, last_scan_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                    WHERE project_id = ?
+                """, (last_branch, project_id))
+            else:
+                conn.execute("""
+                    UPDATE projects 
+                    SET last_scan_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                    WHERE project_id = ?
+                """, (project_id,))
+            conn.commit()
     
     def insert_symbol(self, symbol_data: Dict, project_id: str = 'default') -> int:
         """Insert a symbol and return its ID."""

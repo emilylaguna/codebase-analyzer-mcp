@@ -13,6 +13,7 @@ from fastmcp import FastMCP, Context
 from db import DatabaseManager
 from embeddings import EmbeddingManager
 from parsers.code_parser import CodeParser
+from git_utils import GitManager
 
 # Configure logging
 logging.basicConfig(
@@ -382,7 +383,7 @@ async def get_call_hierarchy(project_id: str, function_name: str, ctx: Optional[
 @app.tool("index_codebase")
 async def index_codebase(path: str, project_id: str = "default", ctx: Optional[Context] = None) -> Dict[str, Any]:
     """
-    Parse and index a codebase directory.
+    Parse and index a codebase directory with smart incremental scanning for git repositories.
     
     Args:
         path: Path to the codebase directory
@@ -405,19 +406,65 @@ async def index_codebase(path: str, project_id: str = "default", ctx: Optional[C
         
         logger.info(f"Starting to index codebase: {path} for project: {project_id}")
         
+        # Initialize git manager and check if this is a git repository
+        git_manager = GitManager(str(codebase_path))
+        is_git_repo = git_manager.is_git_repo()
+        
+        # Get or create project info
+        project_info = db_manager.get_project_info(project_id)
+        if project_info:
+            last_commit_hash = project_info.get('last_commit_hash')
+            last_branch = project_info.get('last_branch')
+        else:
+            last_commit_hash = None
+            last_branch = None
+        
+        # Update project record
+        current_commit_hash = git_manager.get_current_commit_hash() if is_git_repo else None
+        current_branch = git_manager.get_current_branch() if is_git_repo else None
+        
+        db_manager.create_or_update_project(
+            project_id=project_id,
+            path=str(codebase_path),
+            name=codebase_path.name,
+            is_git_repo=is_git_repo,
+            last_commit_hash=current_commit_hash,
+            last_branch=current_branch
+        )
+        
         # Stage 1: File Discovery (0-10%)
         if ctx:
             await ctx.info(f"Discovering files in {path}")
             await ctx.report_progress(progress=0, total=100)
         
-        # Get all files to process
+        # Determine which files to process based on git status
         files_to_process = []
-        for file_path in codebase_path.rglob("*"):
-            if file_path.is_file():
-                file_path_str = str(file_path)
-                language = code_parser.detect_language(file_path_str)
-                if language and db_manager.file_needs_update(file_path_str, project_id):
-                    files_to_process.append(file_path_str)
+        if is_git_repo and last_commit_hash and current_commit_hash != last_commit_hash:
+            # Incremental scan: only process changed files
+            if ctx:
+                await ctx.info("Git repository detected - performing incremental scan")
+            
+            changed_files = git_manager.get_all_changed_files(last_commit_hash)
+            for file_path_str in changed_files:
+                if Path(file_path_str).is_file():
+                    language = code_parser.detect_language(file_path_str)
+                    if language:
+                        files_to_process.append(file_path_str)
+            
+            logger.info(f"Incremental scan: found {len(files_to_process)} changed files")
+        else:
+            # Full scan: process all files that need updates
+            if ctx:
+                await ctx.info("Performing full scan of codebase")
+            
+            for file_path in codebase_path.rglob("*"):
+                if file_path.is_file():
+                    file_path_str = str(file_path)
+                    language = code_parser.detect_language(file_path_str)
+                    if language and db_manager.file_needs_update(file_path_str, project_id):
+                        files_to_process.append(file_path_str)
+            
+            logger.info(f"Full scan: found {len(files_to_process)} files to process")
         
         if ctx:
             await ctx.info(f"Found {len(files_to_process)} files to process")
@@ -509,6 +556,14 @@ async def index_codebase(path: str, project_id: str = "default", ctx: Optional[C
             await ctx.info("Finalizing indexing...")
             await ctx.report_progress(progress=90, total=100)
         
+        # Update project scan information
+        if is_git_repo:
+            db_manager.update_project_scan_info(
+                project_id, 
+                current_commit_hash, 
+                current_branch
+            )
+        
         # Get final statistics
         stats = db_manager.get_stats(project_id)
         
@@ -519,6 +574,11 @@ async def index_codebase(path: str, project_id: str = "default", ctx: Optional[C
         result = {
             "success": True,
             "project_id": project_id,
+            "is_git_repo": is_git_repo,
+            "current_commit_hash": current_commit_hash,
+            "current_branch": current_branch,
+            "last_commit_hash": last_commit_hash,
+            "last_branch": last_branch,
             "processed_files": processed_files,
             "total_symbols_added": total_symbols,
             "errors": errors,
@@ -641,7 +701,7 @@ async def search_symbol_semantic(query: str, top_k: int = 10, project_id: Option
 @app.tool("list_projects")
 async def list_projects() -> Dict[str, Any]:
     """
-    List all projects in the database with their statistics.
+    List all projects in the database with their statistics and git information.
     
     Returns:
         Dictionary with project information
@@ -652,14 +712,67 @@ async def list_projects() -> Dict[str, Any]:
     try:
         projects = db_manager.list_projects()
         
+        # Add git information for each project
+        enhanced_projects = []
+        for project in projects:
+            project_id = project['project_id']
+            project_info = db_manager.get_project_info(project_id)
+            
+            enhanced_project = {
+                **project,
+                "is_git_repo": project_info.get('is_git_repo', False) if project_info else False,
+                "last_commit_hash": project_info.get('last_commit_hash') if project_info else None,
+                "last_branch": project_info.get('last_branch') if project_info else None,
+                "last_scan_time": project_info.get('last_scan_time') if project_info else None
+            }
+            enhanced_projects.append(enhanced_project)
+        
         return {
             "success": True,
-            "total_projects": len(projects),
-            "projects": projects
+            "total_projects": len(enhanced_projects),
+            "projects": enhanced_projects
         }
         
     except Exception as e:
         logger.error(f"Error listing projects: {e}")
+        return {"error": str(e)}
+
+
+@app.tool("force_full_rescan")
+async def force_full_rescan(project_id: str, ctx: Optional[Context] = None) -> Dict[str, Any]:
+    """
+    Force a full rescan of a project by clearing the last commit hash.
+    
+    Args:
+        project_id: Project identifier to rescan
+        ctx: FastMCP context for progress reporting
+        
+    Returns:
+        Dictionary with rescan status
+    """
+    if not db_manager:
+        raise RuntimeError("Server not properly initialized")
+    
+    try:
+        logger.info(f"Forcing full rescan of project: {project_id}")
+        
+        if ctx:
+            await ctx.info(f"Clearing git tracking for project: {project_id}")
+        
+        # Clear the last commit hash to force a full scan
+        db_manager.update_project_scan_info(project_id, None, None)
+        
+        if ctx:
+            await ctx.info("Git tracking cleared. Next scan will be full.")
+        
+        return {
+            "success": True,
+            "project_id": project_id,
+            "message": f"Project {project_id} marked for full rescan"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error forcing full rescan: {e}")
         return {"error": str(e)}
 
 
@@ -709,6 +822,52 @@ async def delete_project(project_id: str, ctx: Optional[Context] = None) -> Dict
         
     except Exception as e:
         logger.error(f"Error deleting project: {e}")
+        return {"error": str(e)}
+
+
+@app.tool("get_project_info")
+async def get_project_info(project_id: str) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific project including git status.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        Dictionary with project information
+    """
+    if not db_manager:
+        raise RuntimeError("Server not properly initialized")
+    
+    try:
+        project_info = db_manager.get_project_info(project_id)
+        if not project_info:
+            return {
+                "success": False,
+                "error": f"Project {project_id} not found"
+            }
+        
+        # Get git information if it's a git repository
+        git_info = None
+        if project_info.get('is_git_repo') and project_info.get('path'):
+            try:
+                git_manager = GitManager(project_info['path'])
+                git_info = git_manager.get_repo_info()
+            except Exception as e:
+                git_info = {"error": str(e)}
+        
+        # Get database statistics
+        stats = db_manager.get_stats(project_id)
+        
+        return {
+            "success": True,
+            "project_info": project_info,
+            "git_info": git_info,
+            "database_stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting project info: {e}")
         return {"error": str(e)}
 
 

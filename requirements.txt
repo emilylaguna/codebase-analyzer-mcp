@@ -5,4 +5,5 @@ tree-sitter-python>=0.23.0
 tree-sitter-javascript>=0.23.0
 tree-sitter-swift>=0.0.1
 spacy>=3.7.0
-uvicorn>=0.24.0 
+uvicorn>=0.24.0
+gitpython>=3.1.0 

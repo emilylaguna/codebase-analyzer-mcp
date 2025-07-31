@@ -18,6 +18,7 @@ dependencies = [
     "tree-sitter-bash>=0.25.0",
     "tree-sitter-kotlin",
     "tree-sitter-markdown",
+    "gitpython>=3.1.45",
 ]
 
 [project.scripts]
@@ -30,10 +31,12 @@ members = [
     "grammars/tree-sitter-python",
     "grammars/tree-sitter-swift",
     "grammars/tree-sitter-markdown",
+    "grammars/tree-sitter-json",
 ]
 
 [tool.uv.sources]
 tree-sitter-bash = { workspace = true }
+tree-sitter-json = { workspace = true }
 tree-sitter-kotlin = { workspace = true }
 tree-sitter-markdown = { workspace = true }
 tree-sitter-python = { workspace = true }
