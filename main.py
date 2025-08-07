@@ -401,6 +401,10 @@ async def get_call_hierarchy(project_id: str, function_name: str, ctx: Optional[
 
 @app.tool("index_codebase")
 async def index_codebase(input_data: IndexCodebaseInput, ctx: Optional[Context] = None) -> IndexCodebaseOutput:
+    return await index_codebase_manual(input_data, ctx)
+
+async def index_codebase_manual(input_data: IndexCodebaseInput, ctx: Optional[Context] = None) -> IndexCodebaseOutput:
+
     """
     Parse and index a codebase directory with smart incremental scanning for git repositories.
     

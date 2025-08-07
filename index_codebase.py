@@ -1,13 +1,15 @@
 import asyncio
-from fastmcp import Client
-import json
-import uuid
+from main import startup, index_codebase_manual, IndexCodebaseInput
+
 async def main():
-    async with Client("main.py") as client:
-        random_uuid = str(uuid.uuid4())
-        result = await client.call_tool("index_codebase", {"path": "./test_codebase", "project_id": random_uuid})
-        print(json.dumps(result.data, indent=4))
-        await client.close()
+    await startup()
+    result = await index_codebase_manual(
+        input_data=IndexCodebaseInput(
+            path="./test_codebase",
+            project_id="test-project"
+        )
+    )
+    print(f"Indexing result: {result.data}")
 
 if __name__ == "__main__":
     asyncio.run(main())
