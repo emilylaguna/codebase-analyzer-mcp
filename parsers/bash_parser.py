@@ -83,14 +83,14 @@ class BashParser(BaseParser):
 
     def parse_file(self, file_path: str) -> List[Dict]:
         """Parse a bash file using tree-sitter with fallback to regex."""
-        try:
-            # Try tree-sitter parsing first
-            symbols = super().parse_file(file_path)
-            if symbols:
-                return symbols
-        except Exception:
-            # Fall back to regex parsing if tree-sitter fails
-            pass
+        # try:
+        #     # Try tree-sitter parsing first
+        #     symbols = super().parse_file(file_path)
+        #     if symbols:
+        #         return symbols
+        # except Exception:
+        #     # Fall back to regex parsing if tree-sitter fails
+        #     pass
         
         # Fallback to regex parsing
         return self.extract_symbols_regex(
@@ -156,20 +156,20 @@ class BashParser(BaseParser):
 
     def extract_relationships(self, content: str, symbols: List[Dict]) -> Dict[str, List[Dict]]:
         """Extract Bash relationships using tree-sitter with fallback to regex."""
-        try:
-            # Try tree-sitter relationships first
-            relationships = super()._extract_relationships(
-                self._parse_content(content, 'bash'), 
-                content, 
-                'bash', 
-                'memory', 
-                symbols
-            )
-            if relationships:
-                return relationships
-        except Exception:
-            # Fall back to regex relationships if tree-sitter fails
-            pass
+        # try:
+        #     # Try tree-sitter relationships first
+        #     relationships = super()._extract_relationships(
+        #         self._parse_content(content, 'bash'), 
+        #         content, 
+        #         'bash', 
+        #         'memory', 
+        #         symbols
+        #     )
+        #     if relationships:
+        #         return relationships
+        # except Exception:
+        #     # Fall back to regex relationships if tree-sitter fails
+        #     pass
         
         # Fallback to regex relationships
         return self._extract_relationships_regex(content, symbols)
@@ -186,7 +186,7 @@ class BashParser(BaseParser):
         import re
         
         # Find function calls
-        function_symbols = [s for s in symbols if s['type'] == 'function']
+        function_symbols = [s for s in symbols if s['symbol_type'] == 'function']
         for func in function_symbols:
             func_name = func['name']
             # Look for function calls in the content
@@ -201,7 +201,7 @@ class BashParser(BaseParser):
                 })
         
         # Find variable usage
-        variable_symbols = [s for s in symbols if s['type'] == 'variable']
+        variable_symbols = [s for s in symbols if s['symbol_type'] == 'variable']
         for var in variable_symbols:
             var_name = var['name']
             # Look for variable usage (excluding definitions)
