@@ -255,8 +255,15 @@ class BaseParser:
             if not name:
                 return None
             
-            # Get symbol type
-            symbol_type = self._get_symbol_type(capture_name, language)
+            # Get symbol type - use language-specific parser if available
+            symbol_type = None
+            parser = self._get_language_parser(language)
+            if parser and hasattr(parser, '_get_symbol_type'):
+                symbol_type = parser._get_symbol_type(capture_name, language)
+            
+            # Fallback to base parser's symbol type mapping
+            if symbol_type is None:
+                symbol_type = self._get_symbol_type(capture_name, language)
             
             # Skip unknown symbol types
             if symbol_type is None:
