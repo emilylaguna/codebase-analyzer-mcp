@@ -4,6 +4,18 @@ from .base_parser import BaseParser
 class HtmlParser(BaseParser):
     """HTML-specific parser for extracting symbols and relationships."""
 
+    def should_extract_relationships(self, language: str) -> bool:
+        """
+        Check if relationships should be extracted for HTML.
+        
+        Args:
+            language: Programming language
+            
+        Returns:
+            False for HTML as it doesn't have meaningful relationships
+        """
+        return False
+
     def extract_symbols_regex(self, lines: List[str], file_path: str, language: str) -> List[Dict]:
         """Extract HTML symbols using regex patterns."""
         # TODO: Implement HTML-specific symbol extraction

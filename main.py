@@ -30,6 +30,44 @@ from models import (
     DependencyNode, DependencyEdge, Relationship, RelatedSymbol
 )
 
+
+def is_hidden_file_or_folder(path: Path) -> bool:
+    """
+    Check if a file or folder should be considered hidden and excluded from indexing.
+    
+    Args:
+        path: Path object to check
+        
+    Returns:
+        True if the path should be excluded, False otherwise
+    """
+    # Check if any part of the path starts with a dot (hidden files/folders)
+    for part in path.parts:
+        if part.startswith('.'):
+            return True
+    
+    # Additional common hidden/built directories to exclude
+    hidden_dirs = {
+        '.build', '.git', '.svn', '.hg', '.bzr',  # Version control
+        '__pycache__', '.pytest_cache', '.mypy_cache',  # Python cache
+        'node_modules', '.npm', '.yarn',  # Node.js
+        '.gradle', 'build', 'target', 'bin', 'obj',  # Build artifacts
+        '.idea', '.vscode', '.vs',  # IDE files
+        '.DS_Store', 'Thumbs.db',  # OS files
+        'dist', '.dist', 'out', '.out',  # Build outputs
+        'coverage', '.coverage',  # Test coverage
+        'logs', '.logs',  # Log files
+        'tmp', '.tmp', 'temp', '.temp',  # Temporary files
+    }
+    
+    # Check if any part of the path is a hidden directory
+    for part in path.parts:
+        if part in hidden_dirs:
+            return True
+    
+    return False
+
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -506,6 +544,10 @@ async def index_codebase_manual(input_data: IndexCodebaseInput, ctx: Optional[Co
                 await ctx.info("Performing full scan of codebase")
             
             for file_path in codebase_path.rglob("*"):
+                # Skip hidden files and folders
+                if is_hidden_file_or_folder(file_path):
+                    continue
+                    
                 if file_path.is_file():
                     file_path_str = str(file_path)
                     language = code_parser.detect_language(file_path_str)
@@ -607,28 +649,31 @@ async def index_codebase_manual(input_data: IndexCodebaseInput, ctx: Optional[Co
                                     logger.warning(f"Error processing symbol {symbol.get('name', 'unknown')} in {file_path_str}: {symbol_error}")
                                     continue
                     
-                    # Process relationships
+                    # Process relationships (only if the language supports them)
                     total_relationships = 0
-                    for symbol in symbols:
-                        if 'relationships' in symbol and symbol['relationships']:
-                            source_id = symbol_ids.get(symbol['name'])
-                            if source_id:
-                                for rel in symbol['relationships']:
-                                    try:
-                                        # Find target symbol
-                                        target_symbols = db_manager.search_by_name(rel['target'], project_id=input_data.project_id)
-                                        if target_symbols:
-                                            # Use the first matching target
-                                            target_id = target_symbols[0]['id']
-                                            db_manager.insert_relationship(
-                                                source_id, target_id, rel['type'], 
-                                                input_data.project_id, rel
-                                            )
-                                            total_relationships += 1
-                                    except Exception as rel_error:
-                                        logger.warning(f"Error processing relationship {rel} for {symbol['name']}: {rel_error}")
-                                        continue
-                    
+                    if code_parser.should_extract_relationships(language):
+                        for symbol in symbols:
+                            if 'relationships' in symbol and symbol['relationships']:
+                                source_id = symbol_ids.get(symbol['name'])
+                                if source_id:
+                                    for rel in symbol['relationships']:
+                                        try:
+                                            # Find target symbol
+                                            target_symbols = db_manager.search_by_name(rel['target'], project_id=input_data.project_id)
+                                            if target_symbols:
+                                                # Use the first matching target
+                                                target_id = target_symbols[0]['id']
+                                                db_manager.insert_relationship(
+                                                    source_id, target_id, rel['type'], 
+                                                    input_data.project_id, rel
+                                                )
+                                                total_relationships += 1
+                                        except Exception as rel_error:
+                                            logger.warning(f"Error processing relationship {rel} for {symbol['name']}: {rel_error}")
+                                            continue
+                    else:
+                        logger.info(f"Skipping relationship extraction for language: {language}")
+
                     processed_files += 1
                     logger.info(f"Processed {file_path_str}: {len(symbols)} symbols")
                 else:

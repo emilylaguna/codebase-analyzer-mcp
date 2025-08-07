@@ -401,6 +401,19 @@ class BaseParser:
         
         return type_mapping.get(capture_name, None)
     
+    def should_extract_relationships(self, language: str) -> bool:
+        """
+        Check if relationships should be extracted for a given language.
+        
+        Args:
+            language: Programming language
+            
+        Returns:
+            True if relationships should be extracted, False otherwise
+        """
+        # Default to True for most languages
+        return True
+
     def _extract_relationships(self, tree: tree_sitter.Tree, content: str, 
                              language: str, file_path: str, symbols: List[Dict]) -> Dict[str, List[Dict]]:
         """
@@ -416,6 +429,10 @@ class BaseParser:
         Returns:
             Dictionary mapping symbol names to their relationships
         """
+        # Check if relationships should be extracted for this language
+        if not self.should_extract_relationships(language):
+            return {}
+        
         # Get language-specific parser
         parser = self._get_language_parser(language)
         if parser:

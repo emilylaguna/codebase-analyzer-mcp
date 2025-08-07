@@ -24,6 +24,10 @@ from .elisp_parser import ElispParser
 from .systemrdl_parser import SystemRdlParser
 from .tlaplus_parser import TlaplusParser
 from .bash_parser import BashParser
+from .json_parser import JSONParser
+from .yaml_parser import YamlParser
+from .toml_parser import TomlParser
+from .markdown_parser import MarkdownParser
 
 
 class CodeParser(ComprehensiveParser):
@@ -40,7 +44,7 @@ class CodeParser(ComprehensiveParser):
             'python': PythonParser(self.grammars_dir, self.queries_dir),
             'javascript': JavaScriptParser(self.grammars_dir, self.queries_dir),
             'typescript': JavaScriptParser(self.grammars_dir,
-                                         self.queries_dir),
+                                          self.queries_dir),
             'tsx': JavaScriptParser(self.grammars_dir, self.queries_dir),
             'java': JavaParser(self.grammars_dir, self.queries_dir),
             'c': CppParser(self.grammars_dir, self.queries_dir),
@@ -62,9 +66,13 @@ class CodeParser(ComprehensiveParser):
             'ocaml': OcamlParser(self.grammars_dir, self.queries_dir),
             'elisp': ElispParser(self.grammars_dir, self.queries_dir),
             'systemrdl': SystemRdlParser(self.grammars_dir,
-                                       self.queries_dir),
+                                        self.queries_dir),
             'tlaplus': TlaplusParser(self.grammars_dir, self.queries_dir),
             'bash': BashParser(self.grammars_dir, self.queries_dir),
+            'json': JSONParser(self.grammars_dir, self.queries_dir),
+            'yaml': YamlParser(self.grammars_dir, self.queries_dir),
+            'toml': TomlParser(self.grammars_dir, self.queries_dir),
+            'markdown': MarkdownParser(self.grammars_dir, self.queries_dir),
         }
     
     def _get_language_parser(self, language: str) -> Optional[ComprehensiveParser]:
@@ -79,4 +87,22 @@ class CodeParser(ComprehensiveParser):
             from .language_parser_factory import LanguageParserFactory
             return LanguageParserFactory.get_parser(language)
         except ImportError:
-            return None 
+            return None
+
+    def should_extract_relationships(self, language: str) -> bool:
+        """
+        Check if relationships should be extracted for a given language.
+        
+        Args:
+            language: Programming language
+            
+        Returns:
+            True if relationships should be extracted, False otherwise
+        """
+        # Get language-specific parser
+        parser = self._get_language_parser(language)
+        if parser and hasattr(parser, 'should_extract_relationships'):
+            return parser.should_extract_relationships(language)
+        
+        # Default to True for most languages
+        return True 

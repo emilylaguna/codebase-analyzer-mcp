@@ -19,6 +19,18 @@ class BashParser(BaseParser):
             '.ksh': 'bash',  # Korn shell is similar enough to use bash grammar
         }
 
+    def should_extract_relationships(self, language: str) -> bool:
+        """
+        Check if relationships should be extracted for Bash.
+        
+        Args:
+            language: Programming language
+            
+        Returns:
+            False for Bash as it doesn't have meaningful relationships
+        """
+        return False
+
     def _get_symbol_type(self, capture_name: str, language: str) -> Optional[str]:
         """Map capture names to symbol types for bash."""
         type_mapping = {
@@ -283,8 +295,8 @@ class BashParser(BaseParser):
                 # String content - return as-is for now
                 return name
             
-            elif capture_name in ['if.statement', 'for.statement', 'while.statement', 
-                                'case.statement', 'do.group']:
+            elif capture_name in ['if.statement', 'for.statement', 'while.statement',
+                                  'case.statement', 'do.group']:
                 # Control structures - use the keyword as identifier
                 keywords = ['if', 'for', 'while', 'case', 'do']
                 for keyword in keywords:
@@ -302,8 +314,8 @@ class BashParser(BaseParser):
                     return words[0]
                 return name
             
-            elif capture_name in ['binary.expression', 'unary.expression', 
-                                'ternary.expression', 'parenthesized.expression']:
+            elif capture_name in ['binary.expression', 'unary.expression',
+                                  'ternary.expression', 'parenthesized.expression']:
                 # Expressions - try to extract a meaningful identifier
                 # For now, return the first word that looks like an identifier
                 import re

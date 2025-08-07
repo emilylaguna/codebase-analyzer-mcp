@@ -12,6 +12,18 @@ class JSONParser(BaseParser):
             '.json': 'json',
             '.jsonc': 'json',  # JSON with comments
         }
+
+    def should_extract_relationships(self, language: str) -> bool:
+        """
+        Check if relationships should be extracted for JSON.
+        
+        Args:
+            language: Programming language
+            
+        Returns:
+            False for JSON as it doesn't have meaningful relationships
+        """
+        return False
     
     def _get_symbol_type(self, capture_name: str, language: str) -> Optional[str]:
         """Map capture name to symbol type for JSON."""
@@ -200,7 +212,7 @@ class JSONParser(BaseParser):
         
         # Find key-numeric relationships
         key_number_pattern = (r'"([^"]+)"\s*:\s*'
-                             r'(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)')
+                              r'(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)')
         for i, line in enumerate(lines):
             matches = re.findall(key_number_pattern, line)
             for key, number in matches:
@@ -271,8 +283,8 @@ class JSONParser(BaseParser):
         
         return relationships
     
-    def extract_symbol_name_from_definition(self, name: str, 
-                                          capture_name: str) -> Optional[str]:
+    def extract_symbol_name_from_definition(self, name: str,
+                                           capture_name: str) -> Optional[str]:
         """Extract symbol name from JSON definition."""
         # For JSON, the name is often the key or value itself
         # Remove quotes if present

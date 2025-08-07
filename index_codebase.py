@@ -9,7 +9,7 @@ async def main():
             project_id="test-project"
         )
     )
-    print(f"Indexing result: {result.data}")
+    print(f"Indexing result: {result}")
 
 if __name__ == "__main__":
     asyncio.run(main())

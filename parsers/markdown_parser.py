@@ -18,6 +18,18 @@ class MarkdownParser(BaseParser):
             '.mdtxt': 'markdown',
             '.mdtext': 'markdown',
         }
+
+    def should_extract_relationships(self, language: str) -> bool:
+        """
+        Check if relationships should be extracted for Markdown.
+        
+        Args:
+            language: Programming language
+            
+        Returns:
+            False for Markdown as it doesn't have meaningful relationships
+        """
+        return False
     
     def _get_symbol_type(self, capture_name: str, language: str) -> Optional[str]:
         """Map capture name to symbol type for Markdown."""
