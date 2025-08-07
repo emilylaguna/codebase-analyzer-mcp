@@ -1,5 +1,5 @@
 import spacy
-from typing import List, Optional
+from typing import List
 import logging
 
 logger = logging.getLogger(__name__)
@@ -118,7 +118,32 @@ class EmbeddingManager:
             raise RuntimeError("SpaCy model not loaded")
         
         try:
-            docs = list(self.nlp.pipe(texts))
+            # Limit batch size to prevent memory issues
+            max_batch_size = 50
+            if len(texts) > max_batch_size:
+                logger.warning(f"Large batch size ({len(texts)}), processing in chunks of {max_batch_size}")
+                all_embeddings = []
+                for i in range(0, len(texts), max_batch_size):
+                    chunk = texts[i:i + max_batch_size]
+                    chunk_embeddings = self._process_batch_chunk(chunk)
+                    all_embeddings.extend(chunk_embeddings)
+                return all_embeddings
+            else:
+                return self._process_batch_chunk(texts)
+                
+        except Exception as e:
+            logger.error(f"Error in batch embedding generation: {e}")
+            # Return zero vectors as fallback
+            return [[0.0] * 300 for _ in texts]
+    
+    def _process_batch_chunk(self, texts: List[str]) -> List[List[float]]:
+        """Process a chunk of texts for batch embedding generation."""
+        try:
+            # Clean texts first to reduce memory usage
+            cleaned_texts = [self._clean_code_text(text) for text in texts]
+            
+            # Process with SpaCy pipe
+            docs = list(self.nlp.pipe(cleaned_texts))
             embeddings = []
             
             for doc in docs:
@@ -135,7 +160,7 @@ class EmbeddingManager:
             
             return embeddings
         except Exception as e:
-            logger.error(f"Error in batch embedding generation: {e}")
+            logger.error(f"Error processing batch chunk: {e}")
             # Return zero vectors as fallback
             return [[0.0] * 300 for _ in texts]
     

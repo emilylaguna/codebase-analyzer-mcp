@@ -538,30 +538,70 @@ async def index_codebase(input_data: IndexCodebaseInput, ctx: Optional[Context] 
                     # Get file hash
                     file_hash = db_manager.get_file_hash(file_path_str)
                     
-                    # Process each symbol and collect IDs for relationships
+                    # Process symbols in batches for better memory management
+                    # Use smaller batch size for files with many symbols to prevent memory issues
+                    if len(symbols) > 1000:
+                        batch_size = 25  # Smaller batches for very large files
+                    else:
+                        batch_size = 100  # Normal batch size
                     symbol_ids = {}  # Map symbol names to their IDs for relationship building
-                    for symbol in symbols:
-                        try:
+                    
+                    for i in range(0, len(symbols), batch_size):
+                        batch = symbols[i:i + batch_size]
+                        
+                        # Prepare batch data
+                        batch_texts = []
+                        batch_symbols = []
+                        
+                        for symbol in batch:
                             symbol['file_hash'] = file_hash
+                            batch_symbols.append(symbol)
                             
-                            # Insert symbol into database
-                            symbol_id = db_manager.insert_symbol(symbol, input_data.project_id)
-                            symbol_ids[symbol['name']] = symbol_id
+                            # Prepare text for embedding
+                            context_text = f"{symbol['symbol_type']} {symbol['name']} {symbol['code_snippet']}"
+                            batch_texts.append(context_text)
+                        
+                        # Generate embeddings in batch
+                        try:
+                            batch_embeddings = embedding_manager.batch_get_embeddings(batch_texts)
                             
-                            # Generate embedding
-                            embedding = embedding_manager.get_embedding_for_code(
-                                symbol['code_snippet'],
-                                symbol['name'],
-                                symbol['symbol_type']
-                            )
-                            
-                            # Store embedding
-                            db_manager.insert_embedding(symbol_id, embedding)
-                            
-                            total_symbols += 1
-                        except Exception as symbol_error:
-                            logger.warning(f"Error processing symbol {symbol.get('name', 'unknown')} in {file_path_str}: {symbol_error}")
-                            continue
+                            # Process each symbol in the batch
+                            for j, symbol in enumerate(batch_symbols):
+                                try:
+                                    # Insert symbol into database
+                                    symbol_id = db_manager.insert_symbol(symbol, input_data.project_id)
+                                    symbol_ids[symbol['name']] = symbol_id
+                                    
+                                    # Store embedding
+                                    db_manager.insert_embedding(symbol_id, batch_embeddings[j])
+                                    
+                                    total_symbols += 1
+                                except Exception as symbol_error:
+                                    logger.warning(f"Error processing symbol {symbol.get('name', 'unknown')} in {file_path_str}: {symbol_error}")
+                                    continue
+                                    
+                        except Exception as batch_error:
+                            logger.error(f"Error processing batch for {file_path_str}: {batch_error}")
+                            # Fallback to individual processing for this batch
+                            for symbol in batch_symbols:
+                                try:
+                                    symbol_id = db_manager.insert_symbol(symbol, input_data.project_id)
+                                    symbol_ids[symbol['name']] = symbol_id
+                                    
+                                    # Generate embedding individually as fallback
+                                    embedding = embedding_manager.get_embedding_for_code(
+                                        symbol['code_snippet'],
+                                        symbol['name'],
+                                        symbol['symbol_type']
+                                    )
+                                    
+                                    # Store embedding
+                                    db_manager.insert_embedding(symbol_id, embedding)
+                                    
+                                    total_symbols += 1
+                                except Exception as symbol_error:
+                                    logger.warning(f"Error processing symbol {symbol.get('name', 'unknown')} in {file_path_str}: {symbol_error}")
+                                    continue
                     
                     # Process relationships
                     total_relationships = 0
